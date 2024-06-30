@@ -106,3 +106,20 @@ Welcome to **PeerLend**, a robust web3 P2P lending and borrowing platform where 
 - **Gemini AI**: Integrated for AI-driven content generation.
 
 By combining these advanced tools and features, **PeerLend** aims to deliver a user-centric, secure, and flexible
+
+## CONTRACT ADDRESS
+
+**PEER TOKEN**
+- **Deployer**: 0x3fb7B6793bF753E74bf776ff386256a7FD9F7bee
+- **Deployed to**: 0x57071b0e17169Ffa2E270CA830170731659294aE
+- **Transaction hash**: 0x48a2faff7c62260f34c46902016a7b2cf251c7c6d20799f569edd38603ffcdcd
+
+**GOVERNANCE ADDRESS**
+- **Deployer**: 0x3fb7B6793bF753E74bf776ff386256a7FD9F7bee
+- **Deployed to**: 0xE4dC120c1984111858198f81f5251b537e9dD8C2
+- **Transaction hash**: 0x19225b9e58c84b210a83a47cc85380a4d1a6645f947b95ab7f3fa0dd22aa79b1
+
+**PROTOCOL ADDRESS**
+**Deployer**: 0x3fb7B6793bF753E74bf776ff386256a7FD9F7bee
+**Deployed to**: 0x915d39553a0167BF0b645F5695C9e072BF2E4D2F
+**Transaction hash**: 0xbafb51ed7be4cf733ba6a10cfa9c2718e4e5b36c1eff2f33bb3ad4652d38ea15

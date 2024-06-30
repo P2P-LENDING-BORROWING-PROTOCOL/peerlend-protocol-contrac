@@ -6,9 +6,9 @@ import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {PeerToken} from "../src/PeerToken.sol";
+// import {PeerToken} from "../src/PeerToken.sol";
 import {Protocol} from "../src/Protocol.sol";
-import {Governance} from "../src/Governance.sol";
+// import {Governance} from "../src/Governance.sol";
 // import {IProtocolTest} from "../IProtocolTest.sol";
 import "../src/Libraries/Errors.sol";
 
@@ -16,47 +16,44 @@ import "../src/Libraries/Errors.sol";
 // forge script ./script/Deploy.s.sol --broadcast -vvvv --account <wallet-account> --sender <sender-address>
 
 contract DeployScript is Script {
-    PeerToken peerToken;
+    address peerToken = 0x57071b0e17169Ffa2E270CA830170731659294aE;
+    address governance = 0xE4dC120c1984111858198f81f5251b537e9dD8C2;
     Protocol protocol;
-    Governance governance;
 
     ERC1967Proxy proxy;
 
     address[] _tokenAddresses;
-    address[] _priceFeedAddresses;
+    bytes4 [] _priceFeedAddresses;
 
-    // address daiToken = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    // address USDCAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    // // address WETHAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    //router address
+    address witnetPricefeedAddress = 0xD9f5Af15288294678B0863A20F4B83eeeEAa775C;
 
-    //SEPOLIA TESTNET ADDRESSES
-    // address daiToken = 0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6;
-    address linkToken = 0xE4aB69C077896252FAFBD49EFD26B5D171A32410;
-    // address USDCToken = 0xf08A50178dfcDe18524640EA6618a1f965821715;
 
-    address daiPriceFeed = 0xD1092a65338d049DB68D7Be6bD89d17a0929945e;
-    address linkPriceFeed = 0xb113F5A928BCfF189C998ab20d753a47F9dE5A61;
-    // address usdcPriceFeed = 0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E;
-    // address WETHPriceFeed = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419; //ETH-USD
+
+    bytes4 USDT_USD = 0x538f5a25;
+    bytes4 MTRG_USD = 0x89e4cf54;
+    bytes4 WETH_USD = 0x3d15f701;
+
+    //METER TESTNET ADDRESSES
+    address USDT_CONTRACT_ADDRESS = 0xB74902F10F56f971192334782DFED7C2ca0D18ad;
+    address MTRG_CONTRACT_ADDRESS = 0x8A419Ef4941355476cf04933E90Bf3bbF2F73814;
+    address WETH_CONTRACT_ADDRESS = 0xE8876830E7Cc85dAE8cE31b0802313caF856886F;
+
 
     function setUp() public {
         // _tokenAddresses.push(daiToken);
-        _tokenAddresses.push(linkToken);
-        // _tokenAddresses.push(USDCToken);
-        // tokens.push(USDCAddress);
-        // _tokenAddresses.push(WETHAddress);
+        _tokenAddresses.push(USDT_CONTRACT_ADDRESS);
+        _tokenAddresses.push(MTRG_CONTRACT_ADDRESS);
+        _tokenAddresses.push(WETH_CONTRACT_ADDRESS);
 
-        // _priceFeedAddresses.push(daiPriceFeed);
-        _priceFeedAddresses.push(linkPriceFeed);
-        // _priceFeedAddresses.push(usdcPriceFeed);
-        // _priceFeedAddresses.push(WETHPriceFeed);
+        _priceFeedAddresses.push(USDT_USD);
+        _priceFeedAddresses.push(MTRG_USD);
+        _priceFeedAddresses.push(WETH_USD);
+
     }
 
     function run() public {
         vm.startBroadcast();
-        peerToken = new PeerToken(msg.sender);
-
-        governance = new Governance(address(peerToken));
 
         Protocol implementation = new Protocol();
         // Deploy the proxy and initialize the contract through the proxy
@@ -68,7 +65,8 @@ contract DeployScript is Script {
                     msg.sender,
                     _tokenAddresses,
                     _priceFeedAddresses,
-                    address(peerToken)
+                    peerToken, 
+                    witnetPricefeedAddress
                 )
             )
         );
@@ -80,7 +78,7 @@ contract DeployScript is Script {
 
         Protocol(address(proxy)).addLoanableToken(
             address(peerToken),
-            daiPriceFeed
+            USDT_USD
         );
         console.log("Loanable Token Added");
 

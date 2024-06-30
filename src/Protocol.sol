@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../lib/";
+import  "../lib/witnet-ethereum-bridge/contracts/interfaces/IWitnetPriceFeeds.sol";
 
 // import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {Validator} from "./Libraries/Validator.sol";
@@ -30,7 +30,7 @@ contract Protocol is
     PeerToken private s_PEER;
 
     /// @dev maps collateral token to their price feed
-    mapping(address token => address priceFeed) private s_priceFeeds;
+    mapping(address token => bytes4 ) private s_priceFeeds;
     /// @dev maps address of a token to see if it is loanable
     mapping(address token => bool isLoanable) private s_isLoanable;
     /// @dev maps user to the value of balance he has collaterised
@@ -59,6 +59,7 @@ contract Protocol is
     mapping(address => mapping(address => uint256)) private userloanAmount;
 
     mapping(address => uint256) private amountLoaned;
+    IWitnetPriceFeeds public witnetPriceFeeds;
 
 
 
@@ -478,7 +479,7 @@ contract Protocol is
     /// @param _priceFeeds Array of price feed addresses for the new collateral tokens
     function addCollateralTokens(
         address[] memory _tokens,
-        address[] memory _priceFeeds
+        bytes4[] memory _priceFeeds
     ) external onlyOwner {
         checkIsVerified(msg.sender);
         if (_tokens.length != _priceFeeds.length) {
@@ -501,7 +502,7 @@ contract Protocol is
     ) external onlyOwner {
         checkIsVerified(msg.sender);
         for (uint8 i = 0; i < _tokens.length; i++) {
-            s_priceFeeds[_tokens[i]] = address(0);
+            s_priceFeeds[_tokens[i]] = bytes4(0);
             for (uint8 j = 0; j < s_collateralToken.length; j++) {
                 if (s_collateralToken[j] == _tokens[i]) {
                     s_collateralToken[j] = s_collateralToken[
@@ -522,7 +523,7 @@ contract Protocol is
     /// @param _priceFeed the address of the currency pair on chainlink
     function addLoanableToken(
         address _token,
-        address _priceFeed
+        bytes4 _priceFeed
     ) external onlyOwner {
         s_isLoanable[_token] = true;
         s_priceFeeds[_token] = _priceFeed;
@@ -675,13 +676,13 @@ contract Protocol is
         address _token,
         uint256 _amount
     ) public view returns (uint256) {
-        AggregatorV3Interface _priceFeed = AggregatorV3Interface(
-            s_priceFeeds[_token]
-        );
-        (, int256 _price, , , ) = _priceFeed.latestRoundData();
-        return
-            ((uint256(_price) * Constants.NEW_PRECISION) * _amount) /
-            Constants.PRECISION;
+        bytes4 feedId = s_priceFeeds[_token];
+        if(feedId == bytes4(0)) revert Protocol__InvalidToken();
+
+        IWitnetPriceSolver.Price memory priceData = witnetPriceFeeds.latestPrice(feedId);
+        uint256 _price = priceData.value;
+
+         return  ((_price * Constants.NEW_PRECISION) * _amount) / Constants.PRECISION;
     }
 
     /// @dev gets all the offers for a particular user
@@ -776,27 +777,32 @@ contract Protocol is
     {
         _assets = s_loanableToken;
     }
-
+event log(string message);
     /// @dev Acts as our contructor
     /// @param _initialOwner a parameter just like in doxygen (must be followed by parameter name)
-    function initialize(
-        address _initialOwner,
-        address[] memory _tokens,
-        address[] memory _priceFeeds,
-        address _peerAddress
-    ) public initializer {
-        __Ownable_init(_initialOwner);
-        if (_tokens.length != _priceFeeds.length) {
-            revert Protocol__tokensAndPriceFeedsArrayMustBeSameLength();
-        }
-        for (uint8 i = 0; i < _tokens.length; i++) {
-            s_isLoanable[_tokens[i]] = true;
-            s_priceFeeds[_tokens[i]] = _priceFeeds[i];
-            s_collateralToken.push(_tokens[i]);
-        }
-        s_PEER = PeerToken(_peerAddress);
-     
+  function initialize(
+    address _initialOwner,
+    address[] memory _tokens,
+    bytes4[] memory _priceFeeds,
+    address _peerAddress,
+    address _witnetPriceFeedsAddress
+) public initializer {
+    __Ownable_init(_initialOwner);
+    transferOwnership(_initialOwner);
+
+    require(_tokens.length == _priceFeeds.length, "Arrays must be the same length");
+
+    for (uint8 i = 0; i < _tokens.length; i++) {
+        s_isLoanable[_tokens[i]] = true;
+        s_priceFeeds[_tokens[i]] = _priceFeeds[i];
+        s_collateralToken.push(_tokens[i]);
     }
+
+    s_PEER = PeerToken(_peerAddress);
+    witnetPriceFeeds = IWitnetPriceFeeds(_witnetPriceFeedsAddress);
+
+    emit log("Initialization complete");
+}
     /// @dev Assist with upgradable proxy
     /// @param {address} a parameter just like in doxygen (must be followed by parameter name)
     function _authorizeUpgrade(address) internal override onlyOwner {}
